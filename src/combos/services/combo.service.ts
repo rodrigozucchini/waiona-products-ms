@@ -1,0 +1,253 @@
+import { Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource, In, EntityManager } from 'typeorm';
+
+import { ComboEntity } from '../entities/combo.entity';
+import { ComboItemEntity } from '../entities/combo-item.entity';
+import { ComboImageEntity } from '../../combo-images/entities/combo-image.entity';
+import { ProductEntity } from '../../products/entities/product.entity';
+import { CategoryEntity } from '../../categories/entities/category.entity';
+
+import { CreateComboDto } from '../dto/create-combo.dto';
+import { UpdateComboDto } from '../dto/update-combo.dto';
+import { ComboResponseDto } from '../dto/combo-response.dto';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
+
+@Injectable()
+export class ComboService {
+  constructor(
+    @InjectRepository(ComboEntity)
+    private readonly comboRepository: Repository<ComboEntity>,
+
+    @InjectRepository(ComboImageEntity)
+    private readonly comboImageRepository: Repository<ComboImageEntity>,
+
+    @InjectRepository(ProductEntity)
+    private readonly productRepository: Repository<ProductEntity>,
+
+    @InjectRepository(CategoryEntity)
+    private readonly categoryRepository: Repository<CategoryEntity>,
+
+    private readonly dataSource: DataSource,
+  ) {}
+
+  // ==========================
+  // GET ALL
+  // ==========================
+
+  async findAll(
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedResponseDto<ComboResponseDto>> {
+    const [combos, total] = await this.comboRepository.findAndCount({
+      relations: ['category', 'items', 'items.product'],
+      order: { name: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return new PaginatedResponseDto(
+      combos.map((combo) => new ComboResponseDto(combo)),
+      total,
+      page,
+      limit,
+    );
+  }
+
+  // ==========================
+  // GET BY ID
+  // ==========================
+
+  async findById(id: number): Promise<ComboResponseDto> {
+    const combo = await this.findOne(id);
+    return new ComboResponseDto(combo);
+  }
+
+  // ==========================
+  // CREATE
+  // ==========================
+
+  async create(dto: CreateComboDto): Promise<ComboResponseDto> {
+    await this.validateCategoryExists(dto.categoryId);
+
+    const combo = await this.dataSource.transaction(async (manager) => {
+      await this.validateItems(dto.items, manager);
+
+      const entity = manager.create(ComboEntity, {
+        name: dto.name,
+        description: dto.description,
+        isActive: dto.isActive ?? true,
+        categoryId: dto.categoryId,
+      });
+
+      const savedCombo = await manager.save(entity);
+
+      const items = dto.items.map((item) =>
+        manager.create(ComboItemEntity, {
+          comboId: savedCombo.id,
+          productId: item.productId,
+          quantity: item.quantity,
+        }),
+      );
+
+      await manager.save(items);
+
+      return manager.findOne(ComboEntity, {
+        where: { id: savedCombo.id },
+        relations: ['category', 'items', 'items.product'],
+      });
+    });
+
+    return new ComboResponseDto(combo!);
+  }
+
+  // ==========================
+  // UPDATE
+  // ==========================
+
+  async update(id: number, dto: UpdateComboDto): Promise<ComboResponseDto> {
+    if (dto.categoryId !== undefined) {
+      await this.validateCategoryExists(dto.categoryId);
+    }
+
+    const combo = await this.dataSource.transaction(async (manager) => {
+      const entity = await manager.findOne(ComboEntity, { where: { id } });
+
+      if (!entity) {
+        throw new RpcException({
+          status: 404,
+          message: `Combo con id ${id} no encontrado`,
+        });
+      }
+
+      manager.merge(ComboEntity, entity, {
+        name: dto.name ?? entity.name,
+        description: dto.description ?? entity.description,
+        isActive: dto.isActive ?? entity.isActive,
+        categoryId: dto.categoryId ?? entity.categoryId,
+      });
+
+      await manager.save(entity);
+
+      if (dto.items) {
+        await this.validateItems(dto.items, manager);
+
+        await manager.softDelete(ComboItemEntity, { comboId: entity.id });
+
+        const newItems = dto.items.map((item) =>
+          manager.create(ComboItemEntity, {
+            comboId: entity.id,
+            productId: item.productId,
+            quantity: item.quantity,
+          }),
+        );
+
+        await manager.save(newItems);
+      }
+
+      return manager.findOne(ComboEntity, {
+        where: { id: entity.id },
+        relations: ['category', 'items', 'items.product'],
+      });
+    });
+
+    return new ComboResponseDto(combo!);
+  }
+
+  // ==========================
+  // SOFT DELETE
+  // ==========================
+
+  async delete(id: number): Promise<void> {
+    const combo = await this.comboRepository.findOne({ where: { id } });
+
+    if (!combo) {
+      throw new RpcException({
+        status: 404,
+        message: `Combo con id ${id} no encontrado`,
+      });
+    }
+
+    const imageCount = await this.comboImageRepository.count({
+      where: { comboId: id },
+    });
+
+    if (imageCount > 0) {
+      throw new RpcException({
+        status: 409,
+        message: `No se puede eliminar el combo: tiene ${imageCount} imagen(es)`,
+      });
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.softDelete(ComboItemEntity, { comboId: id });
+      await manager.softDelete(ComboEntity, id);
+    });
+  }
+
+  // ==========================
+  // PRIVATE
+  // ==========================
+
+  private async findOne(id: number): Promise<ComboEntity> {
+    const combo = await this.comboRepository.findOne({
+      where: { id },
+      relations: ['category', 'items', 'items.product'],
+    });
+
+    if (!combo) {
+      throw new RpcException({
+        status: 404,
+        message: `Combo con id ${id} no encontrado`,
+      });
+    }
+
+    return combo;
+  }
+
+  private async validateItems(
+    items: { productId: number; quantity: number }[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const ids = items.map((i) => i.productId);
+
+    const seen = new Set<number>();
+    for (const id of ids) {
+      if (seen.has(id)) {
+        throw new RpcException({
+          status: 400,
+          message: `Producto con id ${id} duplicado en el combo`,
+        });
+      }
+      seen.add(id);
+    }
+
+    const found = await manager.findBy(ProductEntity, {
+      id: In(ids),
+      isActive: true,
+    });
+
+    if (found.length !== ids.length) {
+      const foundIds = new Set(found.map((p) => p.id));
+      const missing = ids.find((id) => !foundIds.has(id));
+      throw new RpcException({
+        status: 400,
+        message: `Producto con id ${missing} no encontrado o inactivo`,
+      });
+    }
+  }
+
+  private async validateCategoryExists(categoryId: number): Promise<void> {
+    const category = await this.categoryRepository.findOne({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      throw new RpcException({
+        status: 400,
+        message: `Categoría con id ${categoryId} no encontrada`,
+      });
+    }
+  }
+}

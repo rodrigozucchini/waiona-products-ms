@@ -1,0 +1,42 @@
+import {
+  Entity,
+  Column,
+  Index,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
+
+import { BaseEntity } from '../../common/entities/base.entity';
+
+@Entity('categories')
+@Index(['name'])
+@Index(['parentId'])
+@Index(['name'], { unique: true, where: '"deletedAt" IS NULL' })
+export class CategoryEntity extends BaseEntity {
+  @Column({ length: 100 })
+  name: string;
+
+  @Column({ length: 255, nullable: true })
+  description?: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @Column({
+    name: 'parent_id',
+    type: 'int',
+    nullable: true,
+  })
+  parentId?: number | null;
+
+  @ManyToOne(() => CategoryEntity, (category) => category.children, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'parent_id' })
+  parent?: CategoryEntity | null;
+
+  @OneToMany(() => CategoryEntity, (category) => category.parent)
+  children?: CategoryEntity[];
+}
