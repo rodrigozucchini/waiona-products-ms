@@ -7,6 +7,8 @@ import { ProductEntity } from '../entities/product.entity';
 import { CategoryEntity } from '../../categories/entities/category.entity';
 import { ComboItemEntity } from '../../combos/entities/combo-item.entity';
 import { ProductImageEntity } from '../../product-images/entities/product-image.entity';
+import { ProductPricingEntity } from '../../pricing/entities/product-pricing.entity';
+import { ProductTaxEntity } from '../../taxation/product-taxes/entities/product-taxes.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductResponseDto } from '../dto/product-response.dto';
@@ -26,6 +28,12 @@ export class ProductService {
 
     @InjectRepository(ProductImageEntity)
     private readonly productImageRepository: Repository<ProductImageEntity>,
+
+    @InjectRepository(ProductPricingEntity)
+    private readonly productPricingRepository: Repository<ProductPricingEntity>,
+
+    @InjectRepository(ProductTaxEntity)
+    private readonly productTaxRepository: Repository<ProductTaxEntity>,
   ) {}
 
   // ==========================
@@ -147,15 +155,20 @@ export class ProductService {
   async delete(id: number): Promise<void> {
     await this.findOne(id);
 
-    const [imageCount, comboItemCount] = await Promise.all([
-      this.productImageRepository.count({ where: { productId: id } }),
-      this.comboItemRepository.count({ where: { productId: id } }),
-    ]);
+    const [imageCount, comboItemCount, pricingCount, taxCount] =
+      await Promise.all([
+        this.productImageRepository.count({ where: { productId: id } }),
+        this.comboItemRepository.count({ where: { productId: id } }),
+        this.productPricingRepository.count({ where: { productId: id } }),
+        this.productTaxRepository.count({ where: { productId: id } }),
+      ]);
 
     const blocking: string[] = [];
     if (imageCount > 0) blocking.push(`${imageCount} imagen(es)`);
     if (comboItemCount > 0)
       blocking.push(`${comboItemCount} combo(s) que lo incluyen`);
+    if (pricingCount > 0) blocking.push('precio configurado');
+    if (taxCount > 0) blocking.push(`${taxCount} impuesto(s) asignado(s)`);
 
     if (blocking.length > 0) {
       throw new RpcException({

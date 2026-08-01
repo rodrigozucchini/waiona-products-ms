@@ -6,6 +6,8 @@ import { ComboItemEntity } from './entities/combo-item.entity';
 import { ComboImageEntity } from '../combo-images/entities/combo-image.entity';
 import { ProductEntity } from '../products/entities/product.entity';
 import { CategoryEntity } from '../categories/entities/category.entity';
+import { ComboPricingEntity } from '../pricing/entities/combo-pricing.entity';
+import { ProductPricingEntity } from '../pricing/entities/product-pricing.entity';
 import { ComboService } from './services/combo.service';
 import { ComboController } from './controllers/combo.controller';
 
@@ -17,6 +19,8 @@ import { ComboController } from './controllers/combo.controller';
       ComboImageEntity,
       ProductEntity,
       CategoryEntity,
+      ComboPricingEntity,
+      ProductPricingEntity,
     ]),
   ],
   controllers: [ComboController],

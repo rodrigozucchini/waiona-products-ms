@@ -8,6 +8,8 @@ import { ComboItemEntity } from '../entities/combo-item.entity';
 import { ComboImageEntity } from '../../combo-images/entities/combo-image.entity';
 import { ProductEntity } from '../../products/entities/product.entity';
 import { CategoryEntity } from '../../categories/entities/category.entity';
+import { ComboPricingEntity } from '../../pricing/entities/combo-pricing.entity';
+import { ProductPricingEntity } from '../../pricing/entities/product-pricing.entity';
 
 import { CreateComboDto } from '../dto/create-combo.dto';
 import { UpdateComboDto } from '../dto/update-combo.dto';
@@ -28,6 +30,12 @@ export class ComboService {
 
     @InjectRepository(CategoryEntity)
     private readonly categoryRepository: Repository<CategoryEntity>,
+
+    @InjectRepository(ComboPricingEntity)
+    private readonly comboPricingRepository: Repository<ComboPricingEntity>,
+
+    @InjectRepository(ProductPricingEntity)
+    private readonly productPricingRepository: Repository<ProductPricingEntity>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -169,14 +177,19 @@ export class ComboService {
       });
     }
 
-    const imageCount = await this.comboImageRepository.count({
-      where: { comboId: id },
-    });
+    const [imageCount, pricingCount] = await Promise.all([
+      this.comboImageRepository.count({ where: { comboId: id } }),
+      this.comboPricingRepository.count({ where: { comboId: id } }),
+    ]);
 
-    if (imageCount > 0) {
+    const blocking: string[] = [];
+    if (imageCount > 0) blocking.push(`${imageCount} imagen(es)`);
+    if (pricingCount > 0) blocking.push('precio configurado');
+
+    if (blocking.length > 0) {
       throw new RpcException({
         status: 409,
-        message: `No se puede eliminar el combo: tiene ${imageCount} imagen(es)`,
+        message: `No se puede eliminar el combo: tiene ${blocking.join(', ')}`,
       });
     }
 
@@ -234,6 +247,18 @@ export class ComboService {
       throw new RpcException({
         status: 400,
         message: `Producto con id ${missing} no encontrado o inactivo`,
+      });
+    }
+
+    const pricings = await manager.findBy(ProductPricingEntity, {
+      productId: In(ids),
+    });
+    const pricedIds = new Set(pricings.map((p) => p.productId));
+    if (pricedIds.size !== ids.length) {
+      const missing = ids.find((id) => !pricedIds.has(id));
+      throw new RpcException({
+        status: 400,
+        message: `Producto con id ${missing} no tiene precio configurado`,
       });
     }
   }

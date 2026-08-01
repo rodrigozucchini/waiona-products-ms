@@ -6,6 +6,8 @@ import { ProductsModule } from './products/products.module';
 import { CombosModule } from './combos/combos.module';
 import { ProductImagesModule } from './product-images/product-images.module';
 import { ComboImagesModule } from './combo-images/combo-images.module';
+import { TaxationModule } from './taxation/taxation.module';
+import { PricingModule } from './pricing/pricing.module';
 import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { Env } from './env.model';
@@ -32,6 +34,8 @@ import { Env } from './env.model';
     CombosModule,
     ProductImagesModule,
     ComboImagesModule,
+    TaxationModule,
+    PricingModule,
     HealthModule,
   ],
 })
