@@ -6,6 +6,8 @@ import { ComboPricingEntity } from '../entities/combo-pricing.entity';
 import { ProductTaxEntity } from '../../taxation/product-taxes/entities/product-taxes.entity';
 import { TaxEntity } from '../../taxation/taxes/entities/tax.entity';
 import { ComboItemEntity } from '../../combos/entities/combo-item.entity';
+import { DiscountProductTargetEntity } from '../../discounts/discount-product-target/entities/discount-product-target.entity';
+import { DiscountComboTargetEntity } from '../../discounts/discount-combo-target/entities/discount-combo-target.entity';
 import { CalculationService } from './services/calculation.service';
 import { CalculationController } from './controllers/calculation.controller';
 
@@ -17,6 +19,8 @@ import { CalculationController } from './controllers/calculation.controller';
       ProductTaxEntity,
       TaxEntity,
       ComboItemEntity,
+      DiscountProductTargetEntity,
+      DiscountComboTargetEntity,
     ]),
   ],
   controllers: [CalculationController],
