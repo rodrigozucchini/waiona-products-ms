@@ -1,0 +1,139 @@
+import { Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { DiscountComboTargetEntity } from '../entities/discount-combo-target.entity';
+import { DiscountEntity } from '../../discount/entities/discount.entity';
+import { CreateDiscountComboTargetDto } from '../dto/create-discount-combo-target.dto';
+import { DiscountComboTargetResponseDto } from '../dto/discount-combo-target-response.dto';
+import { PaginatedResponseDto } from '../../../common/dto/paginated-response.dto';
+
+@Injectable()
+export class DiscountComboTargetService {
+  constructor(
+    @InjectRepository(DiscountComboTargetEntity)
+    private readonly repo: Repository<DiscountComboTargetEntity>,
+    @InjectRepository(DiscountEntity)
+    private readonly discountRepository: Repository<DiscountEntity>,
+  ) {}
+
+  // ==========================
+  // CREATE
+  // ==========================
+
+  async create(
+    discountId: number,
+    dto: CreateDiscountComboTargetDto,
+  ): Promise<DiscountComboTargetResponseDto> {
+    await this.findDiscount(discountId);
+    await this.validateUniqueTarget(discountId, dto.comboId);
+
+    // el combo no puede tener otro descuento activo (de cualquier descuento)
+    await this.validateComboHasNoActiveDiscount(dto.comboId);
+
+    const entity = this.repo.create({
+      discountId,
+      comboId: dto.comboId,
+    });
+
+    const saved = await this.repo.save(entity);
+
+    return new DiscountComboTargetResponseDto(saved);
+  }
+
+  // ==========================
+  // GET ALL BY DISCOUNT
+  // ==========================
+
+  async findAll(
+    discountId: number,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedResponseDto<DiscountComboTargetResponseDto>> {
+    await this.findDiscount(discountId);
+
+    const [targets, total] = await this.repo.findAndCount({
+      where: { discountId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return new PaginatedResponseDto(
+      targets.map((t) => new DiscountComboTargetResponseDto(t)),
+      total,
+      page,
+      limit,
+    );
+  }
+
+  // ==========================
+  // DELETE (soft)
+  // ==========================
+
+  async remove(discountId: number, comboId: number): Promise<void> {
+    await this.findDiscount(discountId);
+
+    const entity = await this.repo.findOne({
+      where: { discountId, comboId },
+    });
+
+    if (!entity) {
+      throw new RpcException({
+        status: 404,
+        message: `El combo ${comboId} no está asignado al descuento ${discountId}`,
+      });
+    }
+
+    await this.repo.softDelete(entity.id);
+  }
+
+  // ==========================
+  // PRIVATE HELPERS
+  // ==========================
+
+  private async findDiscount(discountId: number): Promise<DiscountEntity> {
+    const discount = await this.discountRepository.findOne({
+      where: { id: discountId },
+    });
+
+    if (!discount) {
+      throw new RpcException({
+        status: 404,
+        message: `Descuento con id ${discountId} no encontrado`,
+      });
+    }
+
+    return discount;
+  }
+
+  private async validateUniqueTarget(
+    discountId: number,
+    comboId: number,
+  ): Promise<void> {
+    const existing = await this.repo.findOne({
+      where: { discountId, comboId },
+    });
+
+    if (existing) {
+      throw new RpcException({
+        status: 409,
+        message: `El combo ${comboId} ya es un target del descuento ${discountId}`,
+      });
+    }
+  }
+
+  private async validateComboHasNoActiveDiscount(
+    comboId: number,
+  ): Promise<void> {
+    const existing = await this.repo.findOne({ where: { comboId } });
+
+    if (existing) {
+      throw new RpcException({
+        status: 409,
+        message: `El combo ${comboId} ya tiene un descuento asignado`,
+      });
+    }
+  }
+}

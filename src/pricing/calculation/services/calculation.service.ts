@@ -8,6 +8,8 @@ import { ComboPricingEntity } from '../../entities/combo-pricing.entity';
 import { ProductTaxEntity } from '../../../taxation/product-taxes/entities/product-taxes.entity';
 import { TaxEntity } from '../../../taxation/taxes/entities/tax.entity';
 import { ComboItemEntity } from '../../../combos/entities/combo-item.entity';
+import { DiscountProductTargetEntity } from '../../../discounts/discount-product-target/entities/discount-product-target.entity';
+import { DiscountComboTargetEntity } from '../../../discounts/discount-combo-target/entities/discount-combo-target.entity';
 
 import { CalculatePreviewDto } from '../dto/calculate-preview.dto';
 import { CalculateProductDto } from '../dto/calculate-product.dto';
@@ -31,6 +33,12 @@ export class CalculationService {
 
     @InjectRepository(ComboItemEntity)
     private comboItemRepo: Repository<ComboItemEntity>,
+
+    @InjectRepository(DiscountProductTargetEntity)
+    private discountProductRepo: Repository<DiscountProductTargetEntity>,
+
+    @InjectRepository(DiscountComboTargetEntity)
+    private discountComboRepo: Repository<DiscountComboTargetEntity>,
   ) {}
 
   // ==========================
@@ -79,10 +87,6 @@ export class CalculationService {
   // ==========================
   // CALCULATE PRODUCT — desde DB
   // ==========================
-  //
-  // Nota: todavía no existe el módulo Discounts en este microservicio,
-  // así que el descuento queda en 0 hasta que se extraiga (ver 4.4 del
-  // plan de migración: Product/Combo como fuente compartida).
 
   async calculateProduct(dto: CalculateProductDto): Promise<PriceBreakdownDto> {
     const pricing = await this.productPricingRepo.findOne({
@@ -99,7 +103,15 @@ export class CalculationService {
     const salePrice = Number(pricing.salePrice);
     const margin = salePrice - unitPrice;
 
-    const discount = 0;
+    // Descuento pre-impuestos (reduce la base imponible)
+    const discountTarget = await this.discountProductRepo.findOne({
+      where: { productId: dto.productId },
+      relations: ['discount'],
+    });
+    const activeDiscount = discountTarget?.discount ?? null;
+    const discount = activeDiscount
+      ? this.applyValue(salePrice, activeDiscount.value, true)
+      : 0;
     const priceAfterDiscount = salePrice - discount;
 
     const taxEntities = await this.fetchTaxesForProduct(dto.productId);
@@ -142,7 +154,15 @@ export class CalculationService {
     const salePrice = Number(pricing.salePrice);
     const margin = salePrice - unitPrice;
 
-    const discount = 0;
+    // Descuento pre-impuestos (reduce la base imponible)
+    const discountTarget = await this.discountComboRepo.findOne({
+      where: { comboId: dto.comboId },
+      relations: ['discount'],
+    });
+    const activeDiscount = discountTarget?.discount ?? null;
+    const discount = activeDiscount
+      ? this.applyValue(salePrice, activeDiscount.value, true)
+      : 0;
     const priceAfterDiscount = salePrice - discount;
 
     // Fetch una sola vez, computa dos veces (sobre base imponible y sobre salePrice)

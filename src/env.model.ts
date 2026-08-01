@@ -10,4 +10,9 @@ export interface Env {
   POSTGRES_DB: string;
   POSTGRES_USER: string;
   POSTGRES_PASSWORD: string;
+
+  // Storage (Cloudinary)
+  CLOUDINARY_CLOUD_NAME: string;
+  CLOUDINARY_API_KEY: string;
+  CLOUDINARY_API_SECRET: string;
 }

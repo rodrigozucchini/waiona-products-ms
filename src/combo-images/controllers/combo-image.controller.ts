@@ -4,6 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ComboImageService } from '../services/combo-image.service';
 import { CreateComboImageDto } from '../dto/create-combo-image.dto';
 import { UpdateComboImageDto } from '../dto/update-combo-image.dto';
+import { UploadComboImageDto } from '../dto/upload-combo-image.dto';
 
 @Controller()
 export class ComboImageController {
@@ -12,6 +13,15 @@ export class ComboImageController {
   @MessagePattern('combo-images.create')
   create(@Payload() dto: CreateComboImageDto) {
     return this.comboImageService.create(dto);
+  }
+
+  @MessagePattern('combo-images.upload')
+  upload(@Payload() data: { buffer: string } & UploadComboImageDto) {
+    const { buffer, ...dto } = data;
+    return this.comboImageService.uploadImage(
+      Buffer.from(buffer, 'base64'),
+      dto,
+    );
   }
 
   @MessagePattern('combo-images.findByCombo')

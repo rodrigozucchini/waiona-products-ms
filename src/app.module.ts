@@ -8,6 +8,8 @@ import { ProductImagesModule } from './product-images/product-images.module';
 import { ComboImagesModule } from './combo-images/combo-images.module';
 import { TaxationModule } from './taxation/taxation.module';
 import { PricingModule } from './pricing/pricing.module';
+import { DiscountsModule } from './discounts/discounts.module';
+import { StorageModule } from './storage/storage.module';
 import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { Env } from './env.model';
@@ -29,6 +31,7 @@ import { Env } from './env.model';
       }),
     }),
     MetricsModule,
+    StorageModule,
     CategoriesModule,
     ProductsModule,
     CombosModule,
@@ -36,6 +39,7 @@ import { Env } from './env.model';
     ComboImagesModule,
     TaxationModule,
     PricingModule,
+    DiscountsModule,
     HealthModule,
   ],
 })

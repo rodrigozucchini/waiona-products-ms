@@ -4,6 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProductImageService } from '../services/product-image.service';
 import { CreateProductImageDto } from '../dto/create-product-image.dto';
 import { UpdateProductImageDto } from '../dto/update-product-image.dto';
+import { UploadProductImageDto } from '../dto/upload-product-image.dto';
 
 @Controller()
 export class ProductImageController {
@@ -12,6 +13,15 @@ export class ProductImageController {
   @MessagePattern('product-images.create')
   create(@Payload() dto: CreateProductImageDto) {
     return this.productImageService.create(dto);
+  }
+
+  @MessagePattern('product-images.upload')
+  upload(@Payload() data: { buffer: string } & UploadProductImageDto) {
+    const { buffer, ...dto } = data;
+    return this.productImageService.uploadImage(
+      Buffer.from(buffer, 'base64'),
+      dto,
+    );
   }
 
   @MessagePattern('product-images.findByProduct')
