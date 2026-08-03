@@ -1,8 +1,8 @@
 export interface Env {
   PORT: number;
 
-  // NATS
-  NATS_SERVERS: string;
+  // gRPC (servidor, entrada síncrona desde api-gateway)
+  PRODUCTS_GRPC_URL: string;
 
   // Database
   POSTGRES_HOST: string;

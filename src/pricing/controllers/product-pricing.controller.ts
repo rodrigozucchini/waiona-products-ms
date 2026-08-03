@@ -1,42 +1,61 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, UseFilters } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 
 import { ProductPricingService } from '../services/product-pricing.service';
+import { GrpcExceptionFilter } from '../../common/filters/grpc-exception.filter';
+import { toPaginated } from '../../common/grpc/paginate.util';
 import { CreateProductPricingDto } from '../dto/create-product-pricing.dto';
 import { UpdateProductPricingDto } from '../dto/update-product-pricing.dto';
+import { ProductPricingResponseDto } from '../dto/product-pricing-response.dto';
+
+function toGrpcProductPricing(dto: ProductPricingResponseDto) {
+  return {
+    id: dto.id,
+    productId: dto.productId,
+    currency: dto.currency,
+    unitPrice: dto.unitPrice,
+    salePrice: dto.salePrice,
+    createdAt: dto.createdAt.toISOString(),
+    updatedAt: dto.updatedAt.toISOString(),
+  };
+}
 
 @Controller()
+@UseFilters(new GrpcExceptionFilter())
 export class ProductPricingController {
   constructor(private readonly service: ProductPricingService) {}
 
-  @MessagePattern('product-pricing.create')
-  create(@Payload() dto: CreateProductPricingDto) {
-    return this.service.create(dto);
+  @GrpcMethod('ProductsService', 'ProductPricingCreate')
+  async create(dto: CreateProductPricingDto) {
+    return toGrpcProductPricing(await this.service.create(dto));
   }
 
-  @MessagePattern('product-pricing.findAll')
-  findAll(@Payload() data: { page?: number; limit?: number }) {
-    return this.service.findAll(data.page, data.limit);
+  @GrpcMethod('ProductsService', 'ProductPricingFindAll')
+  async findAll(data: { page?: number; limit?: number }) {
+    const page = await this.service.findAll(data.page, data.limit);
+    return toPaginated(page, toGrpcProductPricing);
   }
 
-  @MessagePattern('product-pricing.findByProduct')
-  findByProduct(@Payload() data: { productId: number }) {
-    return this.service.findByProduct(data.productId);
+  @GrpcMethod('ProductsService', 'ProductPricingFindByProduct')
+  async findByProduct(data: { productId: number }) {
+    return toGrpcProductPricing(
+      await this.service.findByProduct(data.productId),
+    );
   }
 
-  @MessagePattern('product-pricing.findOne')
-  findOne(@Payload() data: { id: number }) {
-    return this.service.findOne(data.id);
+  @GrpcMethod('ProductsService', 'ProductPricingFindOne')
+  async findOne(data: { id: number }) {
+    return toGrpcProductPricing(await this.service.findOne(data.id));
   }
 
-  @MessagePattern('product-pricing.update')
-  update(@Payload() data: { id: number } & UpdateProductPricingDto) {
+  @GrpcMethod('ProductsService', 'ProductPricingUpdate')
+  async update(data: { id: number } & UpdateProductPricingDto) {
     const { id, ...dto } = data;
-    return this.service.update(id, dto);
+    return toGrpcProductPricing(await this.service.update(id, dto));
   }
 
-  @MessagePattern('product-pricing.delete')
-  async remove(@Payload() data: { id: number }) {
+  @GrpcMethod('ProductsService', 'ProductPricingDelete')
+  async delete(data: { id: number }) {
     await this.service.remove(data.id);
     return { message: 'Pricing eliminado' };
   }
