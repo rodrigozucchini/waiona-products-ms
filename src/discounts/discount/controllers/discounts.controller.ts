@@ -1,37 +1,53 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, UseFilters } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 
 import { DiscountsService } from '../services/discounts.service';
+import { GrpcExceptionFilter } from '../../../common/filters/grpc-exception.filter';
+import { toPaginated } from '../../../common/grpc/paginate.util';
 import { CreateDiscountDto } from '../dto/create-discount.dto';
 import { UpdateDiscountDto } from '../dto/update-discount.dto';
+import { DiscountResponseDto } from '../dto/discount-response.dto';
+
+function toGrpcDiscount(dto: DiscountResponseDto) {
+  return {
+    id: dto.id,
+    name: dto.name,
+    description: dto.description ?? undefined,
+    value: dto.value,
+    createdAt: dto.createdAt.toISOString(),
+    updatedAt: dto.updatedAt.toISOString(),
+  };
+}
 
 @Controller()
+@UseFilters(new GrpcExceptionFilter())
 export class DiscountsController {
   constructor(private readonly discountsService: DiscountsService) {}
 
-  @MessagePattern('discounts.create')
-  create(@Payload() dto: CreateDiscountDto) {
-    return this.discountsService.create(dto);
+  @GrpcMethod('ProductsService', 'DiscountsCreate')
+  async create(dto: CreateDiscountDto) {
+    return toGrpcDiscount(await this.discountsService.create(dto));
   }
 
-  @MessagePattern('discounts.findAll')
-  findAll(@Payload() data: { page?: number; limit?: number }) {
-    return this.discountsService.findAll(data.page, data.limit);
+  @GrpcMethod('ProductsService', 'DiscountsFindAll')
+  async findAll(data: { page?: number; limit?: number }) {
+    const page = await this.discountsService.findAll(data.page, data.limit);
+    return toPaginated(page, toGrpcDiscount);
   }
 
-  @MessagePattern('discounts.findOne')
-  findOne(@Payload() data: { id: number }) {
-    return this.discountsService.findOne(data.id);
+  @GrpcMethod('ProductsService', 'DiscountsFindOne')
+  async findOne(data: { id: number }) {
+    return toGrpcDiscount(await this.discountsService.findOne(data.id));
   }
 
-  @MessagePattern('discounts.update')
-  update(@Payload() data: { id: number } & UpdateDiscountDto) {
+  @GrpcMethod('ProductsService', 'DiscountsUpdate')
+  async update(data: { id: number } & UpdateDiscountDto) {
     const { id, ...dto } = data;
-    return this.discountsService.update(id, dto);
+    return toGrpcDiscount(await this.discountsService.update(id, dto));
   }
 
-  @MessagePattern('discounts.delete')
-  async remove(@Payload() data: { id: number }) {
+  @GrpcMethod('ProductsService', 'DiscountsDelete')
+  async delete(data: { id: number }) {
     await this.discountsService.remove(data.id);
     return { message: 'Descuento eliminado' };
   }

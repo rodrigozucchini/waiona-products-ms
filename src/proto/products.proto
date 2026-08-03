@@ -1,0 +1,622 @@
+syntax = "proto3";
+
+package products;
+
+service ProductsService {
+  // ---------- Categories ----------
+  rpc CategoriesFindAll (PageRequest) returns (PaginatedCategories);
+  rpc CategoriesFindTree (Empty) returns (CategoryTreeResponse);
+  rpc CategoriesFindOne (IdRequest) returns (CategoryResponse);
+  rpc CategoriesCreate (CreateCategoryRequest) returns (CategoryResponse);
+  rpc CategoriesUpdate (UpdateCategoryRequest) returns (CategoryResponse);
+  rpc CategoriesDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Products ----------
+  rpc ProductsFindAll (PageRequest) returns (PaginatedProducts);
+  rpc ProductsFindOne (IdRequest) returns (ProductResponse);
+  rpc ProductsCreate (CreateProductRequest) returns (ProductResponse);
+  rpc ProductsUpdate (UpdateProductRequest) returns (ProductResponse);
+  rpc ProductsDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Combos ----------
+  rpc CombosFindAll (PageRequest) returns (PaginatedCombos);
+  rpc CombosFindOne (IdRequest) returns (ComboResponse);
+  rpc CombosCreate (CreateComboRequest) returns (ComboResponse);
+  rpc CombosUpdate (UpdateComboRequest) returns (ComboResponse);
+  rpc CombosDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Product Images ----------
+  rpc ProductImagesCreate (CreateProductImageRequest) returns (ProductImageResponse);
+  rpc ProductImagesUpload (UploadProductImageRequest) returns (ProductImageResponse);
+  rpc ProductImagesFindByProduct (ProductIdRequest) returns (ProductImagesList);
+  rpc ProductImagesFindOne (IdRequest) returns (ProductImageResponse);
+  rpc ProductImagesUpdate (UpdateProductImageRequest) returns (ProductImageResponse);
+  rpc ProductImagesDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Combo Images ----------
+  rpc ComboImagesCreate (CreateComboImageRequest) returns (ComboImageResponse);
+  rpc ComboImagesUpload (UploadComboImageRequest) returns (ComboImageResponse);
+  rpc ComboImagesFindByCombo (ComboIdRequest) returns (ComboImagesList);
+  rpc ComboImagesFindOne (IdRequest) returns (ComboImageResponse);
+  rpc ComboImagesUpdate (UpdateComboImageRequest) returns (ComboImageResponse);
+  rpc ComboImagesDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Taxes ----------
+  rpc TaxesFindAll (PageRequest) returns (PaginatedTaxes);
+  rpc TaxesFindOne (IdRequest) returns (TaxResponse);
+  rpc TaxesCreate (CreateTaxRequest) returns (TaxResponse);
+  rpc TaxesUpdate (UpdateTaxRequest) returns (TaxResponse);
+  rpc TaxesDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Product Taxes ----------
+  rpc ProductTaxesCreate (CreateProductTaxRequest) returns (ProductTaxResponse);
+  rpc ProductTaxesFindByProduct (ProductTaxesFindByProductRequest) returns (PaginatedProductTaxes);
+  rpc ProductTaxesFindOne (IdRequest) returns (ProductTaxResponse);
+  rpc ProductTaxesUpdate (UpdateProductTaxRequest) returns (ProductTaxResponse);
+  rpc ProductTaxesDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Product Pricing ----------
+  rpc ProductPricingCreate (CreateProductPricingRequest) returns (ProductPricingResponse);
+  rpc ProductPricingFindAll (PageRequest) returns (PaginatedProductPricing);
+  rpc ProductPricingFindByProduct (ProductIdRequest) returns (ProductPricingResponse);
+  rpc ProductPricingFindOne (IdRequest) returns (ProductPricingResponse);
+  rpc ProductPricingUpdate (UpdateProductPricingRequest) returns (ProductPricingResponse);
+  rpc ProductPricingDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Combo Pricing ----------
+  rpc ComboPricingCreate (CreateComboPricingRequest) returns (ComboPricingResponse);
+  rpc ComboPricingFindAll (PageRequest) returns (PaginatedComboPricing);
+  rpc ComboPricingFindByCombo (ComboIdRequest) returns (ComboPricingResponse);
+  rpc ComboPricingFindOne (IdRequest) returns (ComboPricingResponse);
+  rpc ComboPricingUpdate (UpdateComboPricingRequest) returns (ComboPricingResponse);
+  rpc ComboPricingDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Pricing calculation ----------
+  rpc PricingCalculatePreview (CalculatePreviewRequest) returns (PriceBreakdown);
+  rpc PricingCalculateProduct (ProductIdRequest) returns (PriceBreakdown);
+  rpc PricingCalculateCombo (ComboIdRequest) returns (PriceBreakdown);
+
+  // ---------- Discounts ----------
+  rpc DiscountsFindAll (PageRequest) returns (PaginatedDiscounts);
+  rpc DiscountsFindOne (IdRequest) returns (DiscountResponse);
+  rpc DiscountsCreate (CreateDiscountRequest) returns (DiscountResponse);
+  rpc DiscountsUpdate (UpdateDiscountRequest) returns (DiscountResponse);
+  rpc DiscountsDelete (IdRequest) returns (MessageResponse);
+
+  // ---------- Discount Product Targets ----------
+  rpc DiscountProductTargetsCreate (CreateDiscountProductTargetRequest) returns (DiscountProductTargetResponse);
+  rpc DiscountProductTargetsFindByDiscount (DiscountIdPageRequest) returns (PaginatedDiscountProductTargets);
+  rpc DiscountProductTargetsDelete (DiscountProductTargetDeleteRequest) returns (MessageResponse);
+
+  // ---------- Discount Combo Targets ----------
+  rpc DiscountComboTargetsCreate (CreateDiscountComboTargetRequest) returns (DiscountComboTargetResponse);
+  rpc DiscountComboTargetsFindByDiscount (DiscountIdPageRequest) returns (PaginatedDiscountComboTargets);
+  rpc DiscountComboTargetsDelete (DiscountComboTargetDeleteRequest) returns (MessageResponse);
+}
+
+// ==========================
+// Common
+// ==========================
+
+message Empty {}
+
+message MessageResponse {
+  string message = 1;
+}
+
+message IdRequest {
+  int32 id = 1;
+}
+
+message ProductIdRequest {
+  int32 productId = 1;
+}
+
+message ComboIdRequest {
+  int32 comboId = 1;
+}
+
+message PageRequest {
+  optional int32 page = 1;
+  optional int32 limit = 2;
+}
+
+// ==========================
+// Categories
+// ==========================
+
+message CreateCategoryRequest {
+  string name = 1;
+  optional string description = 2;
+  optional int32 parentId = 3;
+}
+
+message UpdateCategoryRequest {
+  int32 id = 1;
+  optional string name = 2;
+  optional string description = 3;
+}
+
+message CategoryResponse {
+  int32 id = 1;
+  string name = 2;
+  optional string description = 3;
+  bool isActive = 4;
+  optional int32 parentId = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+}
+
+message PaginatedCategories {
+  repeated CategoryResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message CategoryTreeNode {
+  int32 id = 1;
+  string name = 2;
+  repeated CategoryTreeNode children = 3;
+}
+
+message CategoryTreeResponse {
+  repeated CategoryTreeNode nodes = 1;
+}
+
+// ==========================
+// Products
+// ==========================
+
+message CreateProductRequest {
+  string sku = 1;
+  string name = 2;
+  string description = 3;
+  optional bool isActive = 4;
+  int32 categoryId = 5;
+  string measurementUnit = 6;
+  optional double measurementValue = 7;
+}
+
+message UpdateProductRequest {
+  int32 id = 1;
+  optional string sku = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional bool isActive = 5;
+  optional int32 categoryId = 6;
+  optional string measurementUnit = 7;
+  optional double measurementValue = 8;
+}
+
+message ProductResponse {
+  int32 id = 1;
+  string sku = 2;
+  string name = 3;
+  string description = 4;
+  bool isActive = 5;
+  int32 categoryId = 6;
+  string categoryName = 7;
+  string measurementUnit = 8;
+  optional double measurementValue = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message PaginatedProducts {
+  repeated ProductResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+// ==========================
+// Combos
+// ==========================
+
+message ComboItem {
+  int32 productId = 1;
+  int32 quantity = 2;
+}
+
+message ComboItemResponse {
+  int32 productId = 1;
+  string productName = 2;
+  int32 quantity = 3;
+}
+
+message CreateComboRequest {
+  string name = 1;
+  string description = 2;
+  optional bool isActive = 3;
+  int32 categoryId = 4;
+  repeated ComboItem items = 5;
+}
+
+// Los campos `repeated` de proto3 no tienen presencia (ausente y "[]" son
+// indistinguibles), así que un `items` no enviado en un update llegaría como
+// lista vacía y rompería el @ArrayMinSize(1) de UpdateComboDto. Envolverlo en
+// un mensaje le da presencia real: wrapper ausente = "no tocar items".
+message ComboItemsWrapper {
+  repeated ComboItem items = 1;
+}
+
+message UpdateComboRequest {
+  int32 id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional bool isActive = 4;
+  optional int32 categoryId = 5;
+  ComboItemsWrapper items = 6;
+}
+
+message ComboResponse {
+  int32 id = 1;
+  string name = 2;
+  string description = 3;
+  bool isActive = 4;
+  int32 categoryId = 5;
+  string categoryName = 6;
+  repeated ComboItemResponse items = 7;
+  string createdAt = 8;
+  string updatedAt = 9;
+}
+
+message PaginatedCombos {
+  repeated ComboResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+// ==========================
+// Product Images
+// ==========================
+
+message CreateProductImageRequest {
+  int32 productId = 1;
+  string url = 2;
+  int32 position = 3;
+}
+
+message UpdateProductImageRequest {
+  int32 id = 1;
+  optional int32 position = 2;
+}
+
+message UploadProductImageRequest {
+  int32 productId = 1;
+  int32 position = 2;
+  bytes buffer = 3;
+}
+
+message ProductImageResponse {
+  int32 id = 1;
+  int32 productId = 2;
+  string url = 3;
+  int32 position = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+}
+
+message ProductImagesList {
+  repeated ProductImageResponse data = 1;
+}
+
+// ==========================
+// Combo Images
+// ==========================
+
+message CreateComboImageRequest {
+  int32 comboId = 1;
+  string url = 2;
+  int32 position = 3;
+}
+
+message UpdateComboImageRequest {
+  int32 id = 1;
+  optional int32 position = 2;
+}
+
+message UploadComboImageRequest {
+  int32 comboId = 1;
+  int32 position = 2;
+  bytes buffer = 3;
+}
+
+message ComboImageResponse {
+  int32 id = 1;
+  int32 comboId = 2;
+  string url = 3;
+  int32 position = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+}
+
+message ComboImagesList {
+  repeated ComboImageResponse data = 1;
+}
+
+// ==========================
+// Taxes
+// ==========================
+
+message CreateTaxRequest {
+  string code = 1;
+  string name = 2;
+  double value = 3;
+  optional bool isGlobal = 4;
+}
+
+message UpdateTaxRequest {
+  int32 id = 1;
+  optional string code = 2;
+  optional string name = 3;
+  optional double value = 4;
+  optional bool isGlobal = 5;
+}
+
+message TaxResponse {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  double value = 4;
+  bool isGlobal = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+}
+
+message PaginatedTaxes {
+  repeated TaxResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+// ==========================
+// Product Taxes
+// ==========================
+
+message CreateProductTaxRequest {
+  int32 productId = 1;
+  int32 taxId = 2;
+}
+
+message UpdateProductTaxRequest {
+  int32 id = 1;
+  optional int32 taxId = 2;
+}
+
+message ProductTaxResponse {
+  int32 id = 1;
+  int32 productId = 2;
+  int32 taxId = 3;
+  TaxResponse tax = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+}
+
+message PaginatedProductTaxes {
+  repeated ProductTaxResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message ProductTaxesFindByProductRequest {
+  int32 productId = 1;
+  optional int32 page = 2;
+  optional int32 limit = 3;
+}
+
+// ==========================
+// Product / Combo Pricing
+// ==========================
+
+message CreateProductPricingRequest {
+  int32 productId = 1;
+  string currency = 2;
+  double unitPrice = 3;
+  double salePrice = 4;
+}
+
+message UpdateProductPricingRequest {
+  int32 id = 1;
+  optional string currency = 2;
+  optional double unitPrice = 3;
+  optional double salePrice = 4;
+}
+
+message ProductPricingResponse {
+  int32 id = 1;
+  int32 productId = 2;
+  string currency = 3;
+  double unitPrice = 4;
+  double salePrice = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+}
+
+message PaginatedProductPricing {
+  repeated ProductPricingResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message CreateComboPricingRequest {
+  int32 comboId = 1;
+  string currency = 2;
+  double unitPrice = 3;
+  double salePrice = 4;
+}
+
+message UpdateComboPricingRequest {
+  int32 id = 1;
+  optional string currency = 2;
+  optional double unitPrice = 3;
+  optional double salePrice = 4;
+}
+
+message ComboPricingResponse {
+  int32 id = 1;
+  int32 comboId = 2;
+  string currency = 3;
+  double unitPrice = 4;
+  double salePrice = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+}
+
+message PaginatedComboPricing {
+  repeated ComboPricingResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+// ==========================
+// Pricing calculation
+// ==========================
+
+message TaxPreview {
+  double value = 1;
+}
+
+message CalculatePreviewRequest {
+  double unitPrice = 1;
+  double salePrice = 2;
+  optional double discountValue = 3;
+  repeated TaxPreview taxes = 4;
+  optional double couponValue = 5;
+}
+
+message PriceBreakdown {
+  double unitPrice = 1;
+  double salePrice = 2;
+  double margin = 3;
+  double discount = 4;
+  double priceAfterDiscount = 5;
+  double taxes = 6;
+  double finalPrice = 7;
+  double fullPrice = 8;
+  double coupon = 9;
+  double orderTotal = 10;
+}
+
+// ==========================
+// Discounts
+// ==========================
+
+message CreateDiscountRequest {
+  string name = 1;
+  optional string description = 2;
+  double value = 3;
+}
+
+message UpdateDiscountRequest {
+  int32 id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional double value = 4;
+}
+
+message DiscountResponse {
+  int32 id = 1;
+  string name = 2;
+  optional string description = 3;
+  double value = 4;
+  string createdAt = 5;
+  string updatedAt = 6;
+}
+
+message PaginatedDiscounts {
+  repeated DiscountResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message DiscountIdPageRequest {
+  int32 discountId = 1;
+  optional int32 page = 2;
+  optional int32 limit = 3;
+}
+
+// ==========================
+// Discount Product Targets
+// ==========================
+
+message CreateDiscountProductTargetRequest {
+  int32 discountId = 1;
+  int32 productId = 2;
+}
+
+message DiscountProductTargetResponse {
+  int32 id = 1;
+  int32 discountId = 2;
+  int32 productId = 3;
+  string createdAt = 4;
+  string updatedAt = 5;
+}
+
+message PaginatedDiscountProductTargets {
+  repeated DiscountProductTargetResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message DiscountProductTargetDeleteRequest {
+  int32 discountId = 1;
+  int32 productId = 2;
+}
+
+// ==========================
+// Discount Combo Targets
+// ==========================
+
+message CreateDiscountComboTargetRequest {
+  int32 discountId = 1;
+  int32 comboId = 2;
+}
+
+message DiscountComboTargetResponse {
+  int32 id = 1;
+  int32 discountId = 2;
+  int32 comboId = 3;
+  string createdAt = 4;
+  string updatedAt = 5;
+}
+
+message PaginatedDiscountComboTargets {
+  repeated DiscountComboTargetResponse data = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+  bool hasNextPage = 6;
+}
+
+message DiscountComboTargetDeleteRequest {
+  int32 discountId = 1;
+  int32 comboId = 2;
+}

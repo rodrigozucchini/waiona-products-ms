@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,9 +14,12 @@ async function bootstrap() {
 
   app.connectMicroservice<MicroserviceOptions>(
     {
-      transport: Transport.NATS,
+      transport: Transport.GRPC,
       options: {
-        servers: [configService.get('NATS_SERVERS', { infer: true })!],
+        package: 'products',
+        protoPath: join(__dirname, 'proto/products.proto'),
+        url: configService.get('PRODUCTS_GRPC_URL', { infer: true })!,
+        loader: { keepCase: true },
       },
     },
     { inheritAppConfig: true },

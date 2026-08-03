@@ -1,27 +1,29 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, UseFilters } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 
 import { CalculationService } from '../services/calculation.service';
+import { GrpcExceptionFilter } from '../../../common/filters/grpc-exception.filter';
 import { CalculatePreviewDto } from '../dto/calculate-preview.dto';
 import { CalculateProductDto } from '../dto/calculate-product.dto';
 import { CalculateComboDto } from '../dto/calculate-combo.dto';
 
 @Controller()
+@UseFilters(new GrpcExceptionFilter())
 export class CalculationController {
   constructor(private readonly calculationService: CalculationService) {}
 
-  @MessagePattern('pricing.calculate.preview')
-  preview(@Payload() dto: CalculatePreviewDto) {
+  @GrpcMethod('ProductsService', 'PricingCalculatePreview')
+  preview(dto: CalculatePreviewDto) {
     return this.calculationService.preview(dto);
   }
 
-  @MessagePattern('pricing.calculate.product')
-  calculateProduct(@Payload() dto: CalculateProductDto) {
+  @GrpcMethod('ProductsService', 'PricingCalculateProduct')
+  calculateProduct(dto: CalculateProductDto) {
     return this.calculationService.calculateProduct(dto);
   }
 
-  @MessagePattern('pricing.calculate.combo')
-  calculateCombo(@Payload() dto: CalculateComboDto) {
+  @GrpcMethod('ProductsService', 'PricingCalculateCombo')
+  calculateCombo(dto: CalculateComboDto) {
     return this.calculationService.calculateCombo(dto);
   }
 }

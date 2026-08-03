@@ -1,47 +1,61 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, UseFilters } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 
 import { ComboImageService } from '../services/combo-image.service';
+import { GrpcExceptionFilter } from '../../common/filters/grpc-exception.filter';
 import { CreateComboImageDto } from '../dto/create-combo-image.dto';
 import { UpdateComboImageDto } from '../dto/update-combo-image.dto';
 import { UploadComboImageDto } from '../dto/upload-combo-image.dto';
+import { ComboImageResponseDto } from '../dto/combo-image-response.dto';
+
+function toGrpcComboImage(dto: ComboImageResponseDto) {
+  return {
+    id: dto.id,
+    comboId: dto.comboId,
+    url: dto.url,
+    position: dto.position,
+    createdAt: dto.createdAt.toISOString(),
+    updatedAt: dto.updatedAt.toISOString(),
+  };
+}
 
 @Controller()
+@UseFilters(new GrpcExceptionFilter())
 export class ComboImageController {
   constructor(private readonly comboImageService: ComboImageService) {}
 
-  @MessagePattern('combo-images.create')
-  create(@Payload() dto: CreateComboImageDto) {
-    return this.comboImageService.create(dto);
+  @GrpcMethod('ProductsService', 'ComboImagesCreate')
+  async create(dto: CreateComboImageDto) {
+    return toGrpcComboImage(await this.comboImageService.create(dto));
   }
 
-  @MessagePattern('combo-images.upload')
-  upload(@Payload() data: { buffer: string } & UploadComboImageDto) {
+  @GrpcMethod('ProductsService', 'ComboImagesUpload')
+  async upload(data: { buffer: Buffer } & UploadComboImageDto) {
     const { buffer, ...dto } = data;
-    return this.comboImageService.uploadImage(
-      Buffer.from(buffer, 'base64'),
-      dto,
+    return toGrpcComboImage(
+      await this.comboImageService.uploadImage(buffer, dto),
     );
   }
 
-  @MessagePattern('combo-images.findByCombo')
-  findByCombo(@Payload() data: { comboId: number }) {
-    return this.comboImageService.findByCombo(data.comboId);
+  @GrpcMethod('ProductsService', 'ComboImagesFindByCombo')
+  async findByCombo(data: { comboId: number }) {
+    const images = await this.comboImageService.findByCombo(data.comboId);
+    return { data: images.map(toGrpcComboImage) };
   }
 
-  @MessagePattern('combo-images.findOne')
-  findOne(@Payload() data: { id: number }) {
-    return this.comboImageService.findOne(data.id);
+  @GrpcMethod('ProductsService', 'ComboImagesFindOne')
+  async findOne(data: { id: number }) {
+    return toGrpcComboImage(await this.comboImageService.findOne(data.id));
   }
 
-  @MessagePattern('combo-images.update')
-  update(@Payload() data: { id: number } & UpdateComboImageDto) {
+  @GrpcMethod('ProductsService', 'ComboImagesUpdate')
+  async update(data: { id: number } & UpdateComboImageDto) {
     const { id, ...dto } = data;
-    return this.comboImageService.update(id, dto);
+    return toGrpcComboImage(await this.comboImageService.update(id, dto));
   }
 
-  @MessagePattern('combo-images.delete')
-  async remove(@Payload() data: { id: number }) {
+  @GrpcMethod('ProductsService', 'ComboImagesDelete')
+  async delete(data: { id: number }) {
     await this.comboImageService.remove(data.id);
     return { message: 'Imagen eliminada' };
   }

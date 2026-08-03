@@ -12,9 +12,9 @@ import { tap } from 'rxjs/operators';
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
   constructor(
-    @InjectMetric('nats_messages_total')
+    @InjectMetric('grpc_messages_total')
     private readonly messagesCounter: Counter<string>,
-    @InjectMetric('nats_message_duration_seconds')
+    @InjectMetric('grpc_message_duration_seconds')
     private readonly messageDuration: Histogram<string>,
   ) {}
 
@@ -23,8 +23,9 @@ export class MetricsInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const rpcContext: any = context.switchToRpc().getContext();
-    const pattern: string = rpcContext?.getSubject?.() ?? 'unknown';
+    // getHandler().name es agnóstico de transporte (a diferencia de
+    // rpcContext.getSubject(), que solo existe en el contexto NATS).
+    const pattern = context.getHandler().name;
     const stopTimer = this.messageDuration.startTimer({ pattern });
 
     return next.handle().pipe(
